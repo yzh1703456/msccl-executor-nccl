@@ -41,6 +41,9 @@ class Primitives<T, RedOp, Fan, Direct, ProtoLL, P2p>:
   union ncclLLFifoLine* recvBuff[MaxRecv];
   union ncclLLFifoLine* sendBuff[MaxSend];
 
+  const int* const recvPeers_; // For NPkit peer ID
+  const int* const sendPeers_;
+
 #if defined(ENABLE_NPKIT)
 public:
   int npKitCtxIdx = 0;
@@ -541,7 +544,9 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
       bool ipcReg = false, bool netReg = false, int stepSize_ = 0
     ):
     redOp(redOpArg),
-    tid(tid), nthreads(nthreads), wid(tid%WARP_SIZE), group(group),
+    tid(tid), nthreads(nthreads), wid(tid%WARP_SIZE), group(group), 
+    recvPeers_(recvPeers),
+    sendPeers_(sendPeers), 
     stepLines(ncclShmem.comm.buffSizes[NCCL_PROTO_LL]/NCCL_STEPS/sizeof(ncclLLFifoLine)) {
     auto *channel = &ncclShmem.channel;
     // If we are going to support oneshot collNet + LL, then we would need to add connector index here
@@ -591,7 +596,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
   __device__ void send(intptr_t inpIx, int eltN) {
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_SEND_ENTRY)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_ENTRY, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -600,7 +605,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
 
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_SEND_EXIT)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_EXIT, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_EXIT, eltN*sizeof(T), sendPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -609,7 +614,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
   __device__ void sendFromOutput(intptr_t outIx, int eltN) {
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_SEND_FROM_OUTPUT_ENTRY)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_FROM_OUTPUT_ENTRY, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_FROM_OUTPUT_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -618,7 +623,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
 
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_SEND_FROM_OUTPUT_EXIT)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_FROM_OUTPUT_EXIT, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_FROM_OUTPUT_EXIT, eltN*sizeof(T), sendPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -626,7 +631,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
   __device__ void recv(intptr_t outIx, int eltN, bool postOp=false) {
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_RECV_ENTRY)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_ENTRY, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_ENTRY, eltN*sizeof(T), recvPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -635,7 +640,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
 
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_RECV_EXIT)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_EXIT, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_EXIT, eltN*sizeof(T), recvPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -643,7 +648,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
   __device__ void recvReduceSend(intptr_t inpIx, int eltN) {
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_RECV_REDUCE_SEND_ENTRY)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_SEND_ENTRY, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_SEND_ENTRY, eltN*sizeof(T), recvPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -652,7 +657,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
 
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_RECV_REDUCE_SEND_EXIT)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_SEND_EXIT, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_SEND_EXIT, eltN*sizeof(T), recvPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -660,7 +665,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
   __device__ void recvReduceCopy(intptr_t inpIx, intptr_t outIx, int eltN, bool postOp=false) {
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_RECV_REDUCE_COPY_ENTRY)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_COPY_ENTRY, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_COPY_ENTRY, eltN*sizeof(T), recvPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -669,7 +674,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
 
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_RECV_REDUCE_COPY_EXIT)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_COPY_EXIT, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_RECV_REDUCE_COPY_EXIT, eltN*sizeof(T), recvPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -677,7 +682,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
   __device__ void copySend(intptr_t inpIx, intptr_t outIx, int eltN, bool postOp=false) {
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_COPY_SEND_ENTRY)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_COPY_SEND_ENTRY, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_COPY_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
@@ -686,7 +691,7 @@ template <int REDUCE, int COPY, int MULTISRCS, int MULTIDSTS>
 
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_COPY_SEND_EXIT)
     if (tid == 0) {
-      NpKit::CollectGpuEvent(NPKIT_EVENT_COPY_SEND_EXIT, eltN*sizeof(T), 0, clock64(),
+      NpKit::CollectGpuEvent(NPKIT_EVENT_COPY_SEND_EXIT, eltN*sizeof(T), sendPeers_[0], clock64(),
           ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
     }
 #endif
