@@ -1114,7 +1114,19 @@ private:
     genericOp<0, 0, 1, 1, -1, Output>(-1, outIx, eltN, postOp);
   }
   __device__ __forceinline__ void directRecvCopyDirectSend(intptr_t outIx, int eltN, bool postOp=false) {
+#if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_DIRECT_RECV_COPY_SEND_ENTRY)
+    if (tid == 0) {
+      NpKit::CollectGpuEvent(NPKIT_EVENT_DIRECT_RECV_COPY_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
+          ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
+    }
+#endif
     genericOp<1, 1, 1, 1, -1, Output>(-1, outIx, eltN, postOp);
+#if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_DIRECT_RECV_COPY_SEND_EXIT)
+    if (tid == 0) {
+      NpKit::CollectGpuEvent(NPKIT_EVENT_DIRECT_RECV_COPY_SEND_EXIT, eltN*sizeof(T), sendPeers_[0], clock64(),
+          ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
+    }
+#endif
   }
   __device__ __forceinline__ void directRecvDirectSend(intptr_t inpIx, intptr_t outIx, int eltN) {
     genericOp<1, 1, 1, 1, -1, -1>(inpIx, outIx, eltN, false);
