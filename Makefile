@@ -1,4 +1,3 @@
-#
 # Copyright (c) 2015-2019, NVIDIA CORPORATION. All rights reserved.
 #
 # See LICENSE.txt for license information
@@ -9,6 +8,12 @@ default : src.build
 install : src.install
 BUILDDIR ?= $(abspath ./build)
 ABSBUILDDIR := $(abspath $(BUILDDIR))
+
+# 添加调试编译选项
+export CFLAGS += -g -O0 -rdynamic
+export CXXFLAGS += -g -O0 -rdynamic
+export LDFLAGS += -ldl
+
 TARGETS := src pkg
 clean: ${TARGETS:%=%.clean}
 test.build: src.build
@@ -17,15 +22,15 @@ LICENSE_TARGETS := $(LICENSE_FILES:%=$(BUILDDIR)/%)
 lic: $(LICENSE_TARGETS)
 
 ${BUILDDIR}/%.txt: %.txt
-	@printf "Copying    %-35s > %s\n" $< $@
-	mkdir -p ${BUILDDIR}
-	cp $< $@
+    @printf "Copying    %-35s > %s\n" $< $@
+    mkdir -p ${BUILDDIR}
+    cp $< $@
 
 src.%:
-	${MAKE} -C src $* BUILDDIR=${ABSBUILDDIR} CXXFLAGS="-rdynamic" LDFLAGS="-rdynamic"
+    ${MAKE} -C src $* BUILDDIR=${ABSBUILDDIR}
 
 pkg.%:
-	${MAKE} -C pkg $* BUILDDIR=${ABSBUILDDIR} CXXFLAGS="-rdynamic" LDFLAGS="-rdynamic"
+    ${MAKE} -C pkg $* BUILDDIR=${ABSBUILDDIR}
 
 pkg.debian.prep: lic
 pkg.txz.prep: lic

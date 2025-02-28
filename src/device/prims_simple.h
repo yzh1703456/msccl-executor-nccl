@@ -10,10 +10,25 @@
 #include "msccl/msccl_struct.h"
 
 // for backtrace
-#include <unistd.h>
+#include <execinfo.h>
+#include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <execinfo.h>
+#include <string>
+inline void PrintStackTrace(int skip = 1, int max_depth = 64) {
+    void* stack[max_depth];
+    int size = backtrace(stack, max_depth);
+    
+    for (int i = skip; i < size; ++i) {
+        Dl_info info;
+        if (dladdr(stack[i], &info)) {
+            const char* symbol = info.dli_sname ?: "??";
+            printf("[%d] %s (%s+0x%zx)\n", 
+                   i - skip, info.dli_fname, symbol,
+                   (char*)stack[i] - (char*)info.dli_saddr);
+        }
+    }
+}
 
 #if defined(ENABLE_NPKIT)
 #include "npkit/npkit.h"
@@ -966,24 +981,6 @@ private:
   }
 
   __device__ __forceinline__ void send(intptr_t inpIx, int eltN) {
-    // Get backtrace for nccl ring-yzh
-    void *buffer[10000];
-    int nptrs = backtrace(buffer, 10000);
-    char **strings = backtrace_symbols(buffer, nptrs);
-
-    if (strings == NULL) {
-        perror("backtrace_symbols");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Print send Backtrace\n");
-
-    for (int i = 0; i < nptrs; i++) {
-        printf("%s\n", strings[i]);
-    }
-    free(strings);
-
-
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_SEND_ENTRY)
     if (tid == 0) {
       NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
@@ -1116,23 +1113,9 @@ private:
   }
 
   __device__ __forceinline__ void directCopySend(intptr_t inpIx, intptr_t outIx, int eltN, bool postOp=false) {
-    // Get backtrace for nccl ring-yzh
-    void *buffer[10000];
-    int nptrs = backtrace(buffer, 10000);
-    char **strings = backtrace_symbols(buffer, nptrs);
+    // Print stack for nccl ring
+    PrintStackTrace();
 
-    if (strings == NULL) {
-        perror("backtrace_symbols");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Print directCopySend Backtrace\n");
-
-    for (int i = 0; i < nptrs; i++) {
-        printf("%s\n", strings[i]);
-    }
-    free(strings);
-    
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_DIRECT_COPY_SEND_ENTRY)
     if (tid == 0) {
       NpKit::CollectGpuEvent(NPKIT_EVENT_DIRECT_COPY_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
