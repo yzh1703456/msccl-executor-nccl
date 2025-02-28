@@ -976,7 +976,7 @@ private:
         exit(EXIT_FAILURE);
     }
 
-    printf("Print send Backtrace\n")
+    printf("Print send Backtrace\n");
 
     for (int i = 0; i < nptrs; i++) {
         printf("%s\n", strings[i]);
@@ -1126,7 +1126,7 @@ private:
         exit(EXIT_FAILURE);
     }
 
-    printf("Print directCopySend Backtrace\n")
+    printf("Print directCopySend Backtrace\n");
 
     for (int i = 0; i < nptrs; i++) {
         printf("%s\n", strings[i]);
