@@ -22,10 +22,10 @@ ${BUILDDIR}/%.txt: %.txt
 	cp $< $@
 
 src.%:
-	${MAKE} -C src $* BUILDDIR=${ABSBUILDDIR}
+	${MAKE} -C src $* BUILDDIR=${ABSBUILDDIR} CXXFLAGS="-rdynamic" LDFLAGS="-rdynamic"
 
 pkg.%:
-	${MAKE} -C pkg $* BUILDDIR=${ABSBUILDDIR}
+	${MAKE} -C pkg $* BUILDDIR=${ABSBUILDDIR} CXXFLAGS="-rdynamic" LDFLAGS="-rdynamic"
 
 pkg.debian.prep: lic
 pkg.txz.prep: lic

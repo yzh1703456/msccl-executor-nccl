@@ -9,6 +9,12 @@
 #include <cassert>
 #include "msccl/msccl_struct.h"
 
+// for backtrace
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <execinfo.h>
+
 #if defined(ENABLE_NPKIT)
 #include "npkit/npkit.h"
 #endif
@@ -960,6 +966,24 @@ private:
   }
 
   __device__ __forceinline__ void send(intptr_t inpIx, int eltN) {
+    // Get backtrace for nccl ring-yzh
+    void *buffer[10000];
+    int nptrs = backtrace(buffer, 10000);
+    char **strings = backtrace_symbols(buffer, nptrs);
+
+    if (strings == NULL) {
+        perror("backtrace_symbols");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Print send Backtrace\n")
+
+    for (int i = 0; i < nptrs; i++) {
+        printf("%s\n", strings[i]);
+    }
+    free(strings);
+
+
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_SEND_ENTRY)
     if (tid == 0) {
       NpKit::CollectGpuEvent(NPKIT_EVENT_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
@@ -1092,6 +1116,23 @@ private:
   }
 
   __device__ __forceinline__ void directCopySend(intptr_t inpIx, intptr_t outIx, int eltN, bool postOp=false) {
+    // Get backtrace for nccl ring-yzh
+    void *buffer[10000];
+    int nptrs = backtrace(buffer, 10000);
+    char **strings = backtrace_symbols(buffer, nptrs);
+
+    if (strings == NULL) {
+        perror("backtrace_symbols");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Print directCopySend Backtrace\n")
+
+    for (int i = 0; i < nptrs; i++) {
+        printf("%s\n", strings[i]);
+    }
+    free(strings);
+    
 #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_DIRECT_COPY_SEND_ENTRY)
     if (tid == 0) {
       NpKit::CollectGpuEvent(NPKIT_EVENT_DIRECT_COPY_SEND_ENTRY, eltN*sizeof(T), sendPeers_[0], clock64(),
