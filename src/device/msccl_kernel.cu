@@ -250,11 +250,11 @@ __device__ __forceinline__ void mscclRunInterpreter(
         if (t->type == MSCCL_SEND)
           // prims.sendWithBarrier(srcOffset, thisNelem); // LL.send is the only situation where there is no barrier at the end.
           // yzh: align with nccl ring
-          prims.directSend(srcOffset, dstOffset, thisNelem)
+          prims.directSend(srcOffset, dstOffset, thisNelem);
         else if (t->type == MSCCL_RECV){
           // prims.recv(dstOffset, thisNelem);
           // yzh: align with nccl ring
-          prims.directRecv(srcOffset, dstOffset, thisNelem)
+          prims.directRecv(srcOffset, dstOffset, thisNelem);
         }
         else if (t->type == MSCCL_REDUCE) {
           int numReductions = t->numReductions;
