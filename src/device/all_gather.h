@@ -12,6 +12,8 @@
 #include "npkit/npkit.h"
 #endif
 
+#include <stdio.h>
+
 namespace {
   template<typename T, typename RedOp, typename Proto>
   __device__ __forceinline__ void runRing(int tid, int nthreads, struct ncclDevWorkColl* work) {
@@ -24,6 +26,11 @@ namespace {
     size_t dataOffset;
     int nelem;
     int rankDest;
+
+    // yzh: DEBUG print log 好像一个数据量的ring会执行12次，然后取平均值？
+    if (tid == 0) {
+        printf("runRing: 开始执行 (tid=%d, nthreads=%d)\n", tid, nthreads);
+    }
 
 #if defined(ENABLE_NPKIT)
     const int bid = blockIdx.x;
