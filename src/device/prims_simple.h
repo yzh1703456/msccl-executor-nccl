@@ -254,8 +254,37 @@ private:
           if (Src) ncclShmem.groups[group].srcs[0] = (SrcBuf==Input ? userInput : userOutput) + srcIx + offset;
           if (Dst) ncclShmem.groups[group].dsts[0] = (DstBuf==Input ? userInput : userOutput) + dstIx + offset;
         }
+
+        // yzh: 看一下这里卡没卡
+        #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_GENRICOP_WAIT_PAIR_ENTRY)
+            if (tid == 0) {
+              NpKit::CollectGpuEvent(NPKIT_EVENT_GENRICOP_WAIT_PAIR_ENTRY, sliceSize*sizeof(T), 0, clock64(),
+                  ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
+            }
+        #endif
         waitPeer<DirectRecv, DirectSend, Recv, Send, Src, Dst>(srcIx, dstIx, offset, sliceSize);
+        #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_GENRICOP_WAIT_PAIR_EXIT)
+            if (tid == 0) {
+              NpKit::CollectGpuEvent(NPKIT_EVENT_GENRICOP_WAIT_PAIR_EXIT, sliceSize*sizeof(T), 0, clock64(),
+                  ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
+            }
+        #endif
+
+        #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_GENRICOP_SUBBARRIER_ENTRY)
+            if (tid == 0) {
+              NpKit::CollectGpuEvent(NPKIT_EVENT_GENRICOP_SUBBARRIER_ENTRY, sliceSize*sizeof(T), 0, clock64(),
+                  ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
+            }
+        #endif
         subBarrier();
+        #if defined(ENABLE_NPKIT) && defined(ENABLE_NPKIT_EVENT_GENRICOP_SUBBARRIER_EXIT)
+            if (tid == 0) {
+              NpKit::CollectGpuEvent(NPKIT_EVENT_GENRICOP_SUBBARRIER_EXIT, sliceSize*sizeof(T), 0, clock64(),
+                  ncclShmem.comm.npKitEventCollectContexts + npKitCtxIdx);
+            }
+        #endif
+
+
         /* if user abort the kernel, we don't need to actually perform copy/reduce; just set size
          * to 0 to avoid unnecessary workload. */
         int workSize = ncclShmem.aborted ? 0 : sliceSize;

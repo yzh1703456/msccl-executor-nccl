@@ -100,4 +100,12 @@
 #define NPKIT_EVENT_MSCCL_REDUCE_ENTRY                          0x52
 #define NPKIT_EVENT_MSCCL_REDUCE_EXIT                           0x53
 
+// yzh: 更详细地看一下genericOp中卡在哪里了
+#define NPKIT_EVENT_GENRICOP_WAIT_PAIR_ENTRY                    0x54
+#define NPKIT_EVENT_GENRICOP_WAIT_PAIR_EXIT                     0x55
+#define NPKIT_EVENT_GENRICOP_SUBBARRIER_ENTRY                    0x56
+#define NPKIT_EVENT_GENRICOP_SUBBARRIER_EXIT                     0x57
+
+
+
 #endif
