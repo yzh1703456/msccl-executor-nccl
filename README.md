@@ -1,3 +1,6 @@
+# 该分支对齐了recv->directRecv, send->directSend, recvcopysend->directRecvCopyDirectSend, 仅用于测试SIMPLE协议下SCCL Ring与NCCL Ring单channel时的性能差距
+
+
 # MSCCL-EXECUTOR-NCCL
 
 Microsoft Collective Communication Library Exector on NCCL (MSCCL-EXECUTOR-NCCL) is an inter-accelerator communication framework that is built on top of [NCCL](https://github.com/nvidia/nccl) and uses its building blocks to execute custom-written collective communication algorithms.
